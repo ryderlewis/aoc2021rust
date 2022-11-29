@@ -7,30 +7,20 @@ pub fn run(part: i8) {
 }
 
 fn part1() {
-    let mut counts: [i64; 9] = [0; 9];
-    for i in parse_input() {
-        counts[i as usize] += 1;
-    }
-
-    for day in 0..80 {
-        let z = counts[0];
-        for i in 0..counts.len()-1 {
-            counts[i] = counts[i+1];
-        }
-        counts[counts.len()-1] = z;
-        counts[6] += z;
-    }
-
-    println!("{}", counts.iter().sum::<i64>());
+    println!("{}", count_after_days(80));
 }
 
 fn part2() {
+    println!("{}", count_after_days(256));
+}
+
+fn count_after_days(days: i32) -> i64 {
     let mut counts: [i64; 9] = [0; 9];
     for i in parse_input() {
         counts[i as usize] += 1;
     }
 
-    for day in 0..256 {
+    for _ in 0..days {
         let z = counts[0];
         for i in 0..counts.len()-1 {
             counts[i] = counts[i+1];
@@ -39,7 +29,7 @@ fn part2() {
         counts[6] += z;
     }
 
-    println!("{}", counts.iter().sum::<i64>());
+    counts.iter().sum::<i64>()
 }
 
 fn parse_input() -> Vec<u8> {
