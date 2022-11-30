@@ -8,6 +8,7 @@ mod day5;
 mod day6;
 mod day7;
 mod day8;
+mod day9;
 
 use std::process::exit;
 
@@ -41,8 +42,8 @@ fn main() {
         6 => day6::run(part),
         7 => day7::run(part),
         8 => day8::run(part),
+        9 => day9::run(part),
         /*
-        9 => day9(),
         10 => day10(),
         11 => day11(),
         12 => day12(),
