@@ -18,7 +18,7 @@ fn part2() {
     println!("{}", g.basins());
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
 struct Point {
     val: u8,
     x: u8,
@@ -104,23 +104,20 @@ impl Grid {
 
     fn basins(&self) -> i32 {
         let mut basin_sizes: Vec<i32> = Vec::new();
-        let mut visited: HashSet<(u8, u8)> = HashSet::new();
+        let mut visited: HashSet<Point> = HashSet::new();
 
         for p in self.low_points() {
-            if visited.get(&(p.x, p.y)).is_some() {
-                continue;
-            }
             let mut basin_size = 0;
             let mut to_visit: Vec<&Point> = vec![p];
-            visited.insert((p.y, p.x));
+            visited.insert(*p);
 
             while to_visit.len() > 0 {
                 let v = to_visit.pop().unwrap();
                 basin_size += 1;
 
                 for n in self.neighbors(v) {
-                    if visited.get(&(n.x, n.y)).is_none() {
-                        visited.insert((n.x, n.y));
+                    if !visited.contains(n) {
+                        visited.insert(*n);
                         if n.val < 9 {
                             to_visit.push(n);
                         }
@@ -132,7 +129,6 @@ impl Grid {
         }
 
         basin_sizes.sort();
-        println!("{:?}", basin_sizes);
         basin_sizes.pop().unwrap() * basin_sizes.pop().unwrap() * basin_sizes.pop().unwrap()
     }
 }
