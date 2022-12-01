@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 pub fn run(part: i8) {
     if part == 1 {
         part1();
@@ -6,12 +8,14 @@ pub fn run(part: i8) {
     }
 }
 
-fn prt1() {
+fn part1() {
     let g = Grid::from_input(input());
     println!("{}", g.risk_level());
 }
 
 fn part2() {
+    let g = Grid::from_input(input());
+    println!("{}", g.basins());
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -49,30 +53,87 @@ impl Grid {
         grid
     }
 
-    fn risk_level(&self) -> i32 {
+    fn low_points(&self) -> Vec<&Point> {
         let height = self.rows.len();
         let width = self.rows[0].len();
-        let mut risk = 0;
+        let mut v: Vec<&Point> = Vec::new();
 
         for y in 0..height {
             for x in 0..width {
-                if y > 0 && self.rows[y-1][x].val <= self.rows[y][x].val {
-                    continue;
+                if self.neighbors(&self.rows[y][x]).iter().all(|p| p.val > self.rows[y][x].val) {
+                    v.push(&self.rows[y][x]);
                 }
-                if y < height-1 && self.rows[y+1][x].val <= self.rows[y][x].val {
-                    continue;
-                }
-                if x > 0 && self.rows[y][x-1].val <= self.rows[y][x].val {
-                    continue;
-                }
-                if x < width-1 && self.rows[y][x+1].val <= self.rows[y][x].val {
-                    continue;
-                }
-                risk += 1 + self.rows[y][x].val as i32;
             }
         }
 
+        v
+    }
+
+    fn risk_level(&self) -> i32 {
+        let mut risk = 0;
+        for p in self.low_points() {
+            risk += 1 + p.val as i32;
+        }
         risk
+    }
+
+    fn neighbors(&self, p: &Point) -> Vec<&Point> {
+        let height = self.rows.len();
+        let width = self.rows[0].len();
+        let mut v: Vec<&Point> = Vec::new();
+
+        // try visiting all neighbors
+        let x = p.x as usize;
+        let y = p.y as usize;
+
+        if y > 0 {
+            v.push(&self.rows[y-1][x]);
+        }
+        if y < height-1 {
+            v.push(&self.rows[y+1][x]);
+        }
+        if x > 0 {
+            v.push(&self.rows[y][x-1]);
+        }
+        if x < width-1 {
+            v.push(&self.rows[y][x+1]);
+        }
+
+        v
+    }
+
+    fn basins(&self) -> i32 {
+        let mut basin_sizes: Vec<i32> = Vec::new();
+        let mut visited: HashSet<(u8, u8)> = HashSet::new();
+
+        for p in self.low_points() {
+            if visited.get(&(p.x, p.y)).is_some() {
+                continue;
+            }
+            let mut basin_size = 0;
+            let mut to_visit: Vec<&Point> = vec![p];
+            visited.insert((p.y, p.x));
+
+            while to_visit.len() > 0 {
+                let v = to_visit.pop().unwrap();
+                basin_size += 1;
+
+                for n in self.neighbors(v) {
+                    if visited.get(&(n.x, n.y)).is_none() {
+                        visited.insert((n.x, n.y));
+                        if n.val < 9 {
+                            to_visit.push(n);
+                        }
+                    }
+                }
+            }
+
+            basin_sizes.push(basin_size);
+        }
+
+        basin_sizes.sort();
+        println!("{:?}", basin_sizes);
+        basin_sizes.pop().unwrap() * basin_sizes.pop().unwrap() * basin_sizes.pop().unwrap()
     }
 }
 
