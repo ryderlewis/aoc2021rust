@@ -9,6 +9,7 @@ mod day6;
 mod day7;
 mod day8;
 mod day9;
+mod day2201;
 
 use std::process::exit;
 
@@ -22,13 +23,13 @@ fn main() {
     if day.is_err() {
         print_usage(&args);
     }
-    let day: i8 = day.unwrap();
+    let day = day.unwrap();
 
     let part = args[2].parse();
     if part.is_err() {
         print_usage(&args);
     }
-    let part: i8 = part.unwrap();
+    let part = part.unwrap();
     if part < 1 || part > 2 {
         print_usage(&args);
     }
@@ -43,6 +44,7 @@ fn main() {
         7 => day7::run(part),
         8 => day8::run(part),
         9 => day9::run(part),
+        2201 => day2201::run(part),
         /*
         10 => day10(),
         11 => day11(),
