@@ -17,7 +17,13 @@ fn part1() {
             if s.is_none() {
                 stack.push(c);
             } else if stack.pop() != Some(s.unwrap()) {
-                answer += score(c);
+                answer += match c {
+                    ')' => 3,
+                    ']' => 57,
+                    '}' => 1197,
+                    '>' => 25137,
+                    _ => 0,
+                };
                 break;
             }
         }
@@ -27,6 +33,40 @@ fn part1() {
 }
 
 fn part2() {
+    let mut answer: Vec<i64> = vec![];
+
+    for l in input().lines() {
+        let mut stack = Vec::<char>::new();
+
+        for c in l.trim().chars() {
+            let s = starting(c);
+            if s.is_none() {
+                stack.push(c); // this _is_ a starting char
+            } else if stack.pop() != Some(s.unwrap()) {
+                // corrupt
+                stack.clear();
+                break;
+            }
+        }
+
+        if stack.len() > 0 {
+            let mut stack_score: i64 = 0;
+            while stack.len() > 0 {
+                stack_score *= 5;
+                stack_score += match ending(stack.pop().unwrap()).unwrap() {
+                    ')' => 1,
+                    ']' => 2,
+                    '}' => 3,
+                    '>' => 4,
+                    _ => 0,
+                }
+            }
+            answer.push(stack_score);
+        }
+    }
+
+    answer.sort();
+    println!("{}", answer[answer.len()/2]);
 }
 
 fn starting(c: char) -> Option<char> {
@@ -46,16 +86,6 @@ fn ending(c: char) -> Option<char> {
         '<' => Some('>'),
         '{' => Some('}'),
         _ => None,
-    }
-}
-
-fn score(c: char) -> i32 {
-    match c {
-        ')' => 3,
-        ']' => 57,
-        '}' => 1197,
-        '>' => 25137,
-        _ => 0,
     }
 }
 
