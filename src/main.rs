@@ -10,6 +10,7 @@ mod day2107;
 mod day2108;
 mod day2109;
 mod day2110;
+mod day2111;
 mod day2201;
 mod day2202;
 mod day2203;
@@ -48,6 +49,7 @@ fn main() {
         2108 => day2108::run(part),
         2109 => day2109::run(part),
         2110 => day2110::run(part),
+        2111 => day2111::run(part),
         2201 => day2201::run(part),
         2202 => day2202::run(part),
         2203 => day2203::run(part),
