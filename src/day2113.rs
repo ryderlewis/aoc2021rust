@@ -18,6 +18,9 @@ fn part1() {
 }
 
 fn part2() {
+    let mut sheet = Sheet::parse();
+    sheet.do_folds();
+    sheet.do_print();
 }
 
 #[derive(Debug)]
@@ -95,6 +98,20 @@ impl Sheet {
             } else {
                 self.rows = f.pos;
             }
+        }
+    }
+
+    fn do_print(&self) {
+        for y in 0..self.rows {
+            for x in 0..self.cols {
+                let coord = Coordinate{x, y};
+                if self.coordinates.contains(&coord) {
+                    print!("##");
+                } else {
+                    print!("  ");
+                }
+            }
+            println!();
         }
     }
 }
