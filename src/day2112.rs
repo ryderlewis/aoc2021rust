@@ -15,6 +15,9 @@ fn part1() {
 }
 
 fn part2() {
+    let cave = Cave::parse();
+
+    println!("{}", cave.count_double_paths());
 }
 
 #[derive(Debug)]
@@ -74,6 +77,47 @@ impl<'a> Cave {
 
         path_count
     }
+
+    fn count_double_paths(&self) -> i32 {
+        let start = self.get_room("start");
+        let mut visited: HashSet<&str> = HashSet::from(["start"]);
+        let mut double: Option<&str> = None;
+        self.count_paths_with_double_visited(&start, &mut visited, &mut double)
+    }
+
+    fn count_paths_with_double_visited(&self, room: &'a Room, visited: &mut HashSet<&'static str>, double: &mut Option<&'static str>) -> i32 {
+        if room.name == "end" {
+            return 1;
+        }
+
+        let mut path_count = 0;
+
+        for s in room.linked() {
+            let next_room = self.get_room(s);
+            if visited.contains(s) {
+                if double.is_some() || !next_room.can_double_visit() {
+                    continue;
+                }
+            }
+            if next_room.is_small() {
+                if visited.contains(s) {
+                    *double = Some(s);
+                } else {
+                    visited.insert(s);
+                }
+            }
+
+            path_count += self.count_paths_with_double_visited(next_room, visited, double);
+
+            if *double == Some(s) {
+                *double = None;
+            } else {
+                visited.remove(s);
+            }
+        }
+
+        path_count
+    }
 }
 
 #[derive(Debug)]
@@ -100,6 +144,10 @@ impl Room {
 
     fn is_small(&self) -> bool {
         !self.is_big()
+    }
+
+    fn can_double_visit(&self) -> bool {
+        self.is_small() && self.name != "start" && self.name != "end"
     }
 
     fn linked(&self) -> Vec<&'static str> {
