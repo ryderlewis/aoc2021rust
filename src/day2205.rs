@@ -7,11 +7,15 @@ pub fn run(part: i8) {
 }
 
 fn part1() {
-    let ship = Ship::parse();
-    println!("{:#?}", ship);
+    let mut ship = Ship::parse();
+    ship.do_instructions();
+    println!("{}", ship.message());
 }
 
 fn part2() {
+    let mut ship = Ship::parse();
+    ship.do_instructions_2();
+    println!("{}", ship.message());
 }
 
 #[derive(Debug)]
@@ -75,6 +79,42 @@ impl Ship {
         }
 
         ship
+    }
+
+    fn do_instructions(&mut self) {
+        for inst in &self.instructions {
+            let from = &mut self.stacks[inst.from-1];
+            let mut v: Vec<char> = Vec::new();
+            for _ in 0..inst.quantity {
+                v.push(from.pop().unwrap());
+            }
+
+            let to = &mut self.stacks[inst.to-1];
+            to.append(&mut v);
+        }
+    }
+
+    fn do_instructions_2(&mut self) {
+        for inst in &self.instructions {
+            let from = &mut self.stacks[inst.from-1];
+            let mut v: Vec<char> = Vec::new();
+            for _ in 0..inst.quantity {
+                v.push(from.pop().unwrap());
+            }
+
+            let to = &mut self.stacks[inst.to-1];
+            while !v.is_empty() {
+                to.push(v.pop().unwrap());
+            }
+        }
+    }
+
+    fn message(&self) -> String {
+        let mut s = String::new();
+        for v in &self.stacks {
+            s.push(*v.last().unwrap());
+        }
+        s
     }
 }
 
