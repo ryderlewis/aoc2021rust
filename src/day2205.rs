@@ -83,29 +83,18 @@ impl Ship {
 
     fn do_instructions(&mut self) {
         for inst in &self.instructions {
-            let from = &mut self.stacks[inst.from-1];
-            let mut v: Vec<char> = Vec::new();
-            for _ in 0..inst.quantity {
-                v.push(from.pop().unwrap());
-            }
-
-            let to = &mut self.stacks[inst.to-1];
-            to.append(&mut v);
+            let source = &mut self.stacks[inst.from-1];
+            let mut from_v = source.split_off(source.len()-inst.quantity);
+            from_v.reverse();
+            self.stacks[inst.to-1].append(&mut from_v);
         }
     }
 
     fn do_instructions_2(&mut self) {
         for inst in &self.instructions {
-            let from = &mut self.stacks[inst.from-1];
-            let mut v: Vec<char> = Vec::new();
-            for _ in 0..inst.quantity {
-                v.push(from.pop().unwrap());
-            }
-
-            let to = &mut self.stacks[inst.to-1];
-            while !v.is_empty() {
-                to.push(v.pop().unwrap());
-            }
+            let source = &mut self.stacks[inst.from-1];
+            let mut from_v = source.split_off(source.len()-inst.quantity);
+            self.stacks[inst.to-1].append(&mut from_v);
         }
     }
 
