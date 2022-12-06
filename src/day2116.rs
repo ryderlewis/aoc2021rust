@@ -16,18 +16,102 @@ fn part1() {
 fn part2() {
 }
 
+const TYPE_ID_LITERAL: u8 = 4;
+
+const LENGTH_TYPE_BITS: u8 = 0;
+const LENGTH_TYPE_PACKETS: u8 = 1;
+
+#[derive(Debug)]
+struct Operator {
+    length_type: u8,
+    length: u16,
+    sub_packets: Vec<Packet>,
+}
+
 #[derive(Debug)]
 struct Packet {
-    bits: BitVec<u32>,
-    // sub_packets: Vec<Packet>,
+    version: u8,
+    type_id: u8,
+    literal: Option<i64>,
+    operator: Option<Operator>,
 }
 
 impl Packet {
-    fn parse() -> Self {
+    fn parse() -> Vec<Self> {
         let i = input().trim().as_bytes();
         let b: Vec<u8> = (0..i.len()).step_by(2).map(|x| (i[x]-b'0') << 4 | (i[x+1]-b'0')).collect();
+        let bits = BitVec::from_bytes(&b);
+        let mut offset = 0;
 
-        Self{bits: BitVec::from_bytes(&b)}
+        let mut v = Vec::new();
+
+        while offset < bits.len() {
+            let p = Self::make_packet(&bits, &mut offset);
+            println!("{:#?}", p);
+            v.push(p);
+        }
+
+        v
+    }
+
+    fn make_packet(bits: &BitVec<u32>, offset: &mut usize) -> Self {
+        let version = Self::extract_val(&bits, 3, offset) as u8;
+        let type_id = Self::extract_val(&bits, 3, offset) as u8;
+        let literal = match type_id {
+            TYPE_ID_LITERAL => Some(Self::extract_literal(&bits, offset)),
+            _ => None,
+        };
+        let operator = match type_id {
+            TYPE_ID_LITERAL => None,
+            _ => Some(Self::extract_operator(&bits, offset)),
+        };
+
+        Self { version, type_id, literal, operator }
+    }
+
+    fn extract_val(bits: &BitVec<u32>, bytes: usize, offset: &mut usize) -> usize {
+        let mut t = 0;
+
+        for i in 0..bytes {
+            t *= 2;
+            if bits.get(*offset + i).expect("ran off the end") {
+                t += 1;
+            }
+        }
+        *offset += bytes;
+
+        t
+    }
+
+    fn extract_literal(bits: &BitVec<u32>, offset: &mut usize) -> i64 {
+        let mut literal: i64 = 0;
+        let mut cont: u8 = 1;
+
+        while cont == 1 {
+            cont = Self::extract_val(bits, 1, offset) as u8;
+            literal *= 8;
+            literal += Self::extract_val(bits, 3, offset) as i64;
+        }
+
+        literal
+    }
+
+    fn extract_operator(bits: &BitVec<u32>, offset: &mut usize) -> Operator {
+        let length_type = Self::extract_val(bits, 1, offset) as u8;
+        let mut length = Self::extract_val(bits, if length_type == LENGTH_TYPE_BITS { 15 } else { 11 }, offset) as u16;
+        let mut sub_packets = Vec::new();
+
+        while length > 0 {
+            let start = *offset;
+            sub_packets.push(Self::make_packet(bits, offset));
+
+            length -= match length_type {
+                LENGTH_TYPE_BITS => (*offset - start) as u16,
+                _ => 1,
+            }
+        }
+
+        Operator { length_type, length, sub_packets }
     }
 }
 
