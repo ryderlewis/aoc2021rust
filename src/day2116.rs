@@ -9,13 +9,11 @@ pub fn run(part: i8) {
 }
 
 fn part1() {
-    let packets = Packet::parse();
-    println!("{}", packets.iter().map(|p| p.version_sum()).sum::<u64>());
+    println!("{}", Packet::parse().version_sum());
 }
 
 fn part2() {
-    let packets = Packet::parse();
-    println!("{}", packets.iter().map(|p| p.evaluate()).sum::<i64>());
+    println!("{}", Packet::parse().evaluate());
 }
 
 const TYPE_ID_SUM: u8 = 0;
@@ -73,20 +71,13 @@ impl Packet {
         }
     }
 
-    fn parse() -> Vec<Self> {
+    fn parse() -> Self {
         let i = input().trim();
         let b: Vec<u8> = (0..i.len()).step_by(2).map(|x| u8::from_str_radix(&i[x..x+2], 16).unwrap()).collect();
         let bits = BitVec::from_bytes(&b);
         let mut offset = 0;
 
-        let mut v = Vec::new();
-
-        while offset < bits.len() - 7 {
-            let p = Self::make_packet(&bits, &mut offset);
-            v.push(p);
-        }
-
-        v
+        Self::make_packet(&bits, &mut offset)
     }
 
     fn make_packet(bits: &BitVec<u32>, offset: &mut usize) -> Self {
