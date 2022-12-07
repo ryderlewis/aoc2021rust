@@ -9,8 +9,8 @@ pub fn run(part: i8) {
 }
 
 fn part1() {
-    let packet = Packet::parse();
-    println!("{:?}", packet);
+    let packets = Packet::parse();
+    println!("{}", packets.iter().map(|p| p.version_sum()).sum::<u64>());
 }
 
 fn part2() {
@@ -37,17 +37,23 @@ struct Packet {
 }
 
 impl Packet {
+    fn version_sum(&self) -> u64 {
+       self.version as u64 + match &self.operator {
+           None => 0,
+           Some(operator) => operator.sub_packets.iter().map(|p| p.version_sum()).sum(),
+       }
+    }
+
     fn parse() -> Vec<Self> {
-        let i = input().trim().as_bytes();
-        let b: Vec<u8> = (0..i.len()).step_by(2).map(|x| (i[x]-b'0') << 4 | (i[x+1]-b'0')).collect();
+        let i = input().trim();
+        let b: Vec<u8> = (0..i.len()).step_by(2).map(|x| u8::from_str_radix(&i[x..x+2], 16).unwrap()).collect();
         let bits = BitVec::from_bytes(&b);
         let mut offset = 0;
 
         let mut v = Vec::new();
 
-        while offset < bits.len() {
+        while offset < bits.len() - 7 {
             let p = Self::make_packet(&bits, &mut offset);
-            println!("{:#?}", p);
             v.push(p);
         }
 
@@ -89,8 +95,8 @@ impl Packet {
 
         while cont == 1 {
             cont = Self::extract_val(bits, 1, offset) as u8;
-            literal *= 8;
-            literal += Self::extract_val(bits, 3, offset) as i64;
+            literal *= 16;
+            literal += Self::extract_val(bits, 4, offset) as i64;
         }
 
         literal
