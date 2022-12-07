@@ -14,9 +14,18 @@ fn part1() {
 }
 
 fn part2() {
+    let packets = Packet::parse();
+    println!("{}", packets.iter().map(|p| p.evaluate()).sum::<i64>());
 }
 
+const TYPE_ID_SUM: u8 = 0;
+const TYPE_ID_PRODUCT: u8 = 1;
+const TYPE_ID_MINIMUM: u8 = 2;
+const TYPE_ID_MAXIMUM: u8 = 3;
 const TYPE_ID_LITERAL: u8 = 4;
+const TYPE_ID_GT: u8 = 5;
+const TYPE_ID_LT: u8 = 6;
+const TYPE_ID_EQ: u8 = 7;
 
 const LENGTH_TYPE_BITS: u8 = 0;
 const LENGTH_TYPE_PACKETS: u8 = 1;
@@ -42,6 +51,26 @@ impl Packet {
            None => 0,
            Some(operator) => operator.sub_packets.iter().map(|p| p.version_sum()).sum(),
        }
+    }
+
+    fn evaluate(&self) -> i64 {
+        if self.type_id == TYPE_ID_LITERAL {
+            return self.literal.expect("expected a literal");
+        }
+
+        let v: Vec<i64> = self.operator.as_ref().expect("expected an operator")
+            .sub_packets.iter().map(|p| p.evaluate()).collect();
+
+        match self.type_id {
+            TYPE_ID_SUM => v.iter().sum(),
+            TYPE_ID_PRODUCT => v.iter().product::<i64>(),
+            TYPE_ID_MINIMUM => *v.iter().min().unwrap(),
+            TYPE_ID_MAXIMUM => *v.iter().max().unwrap(),
+            TYPE_ID_GT => if v[0] > v[1] { 1 } else { 0 },
+            TYPE_ID_LT => if v[0] < v[1] { 1 } else { 0 },
+            TYPE_ID_EQ => if v[0] == v[1] { 1 } else { 0 },
+            _ => 0,
+        }
     }
 
     fn parse() -> Vec<Self> {
