@@ -31,30 +31,32 @@ fn part1() {
     println!("{}", tpos.len());
 }
 
-fn follow(h: &Point, t: &mut Point) {
-    if (h.x-1..=h.x+1).contains(&t.x) && (h.y-1..=h.y+1).contains(&t.y) {
+fn follow(leader: &Point, follower: &mut Point) {
+    if (leader.x-1..=leader.x+1).contains(&follower.x) && (leader.y-1..=leader.y+1).contains(&follower.y) {
         return;
     }
 
-    if h.x - 1 > t.x {
-        t.x = h.x - 1;
-        t.y = h.y;
+    let mut dx = 0;
+    let mut dy = 0;
+
+    if leader.x != follower.x {
+        if follower.x < leader.x {
+            dx = 1;
+        } else {
+            dx = -1;
+        }
     }
 
-    if h.x + 1 < t.x {
-        t.x = h.x + 1;
-        t.y = h.y;
+    if leader.y != follower.y {
+        if follower.y < leader.y {
+            dy = 1;
+        } else {
+            dy = -1;
+        }
     }
 
-    if h.y - 1 > t.y {
-        t.y = h.y - 1;
-        t.x = h.x;
-    }
-
-    if h.y + 1 < t.y {
-        t.y = h.y + 1;
-        t.x = h.x;
-    }
+    follower.x += dx;
+    follower.y += dy;
 }
 
 fn part2() {
