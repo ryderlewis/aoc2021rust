@@ -32,18 +32,28 @@ fn part1() {
 }
 
 fn follow(h: &Point, t: &mut Point) {
-    if h.x > t.x+1 {
+    if (h.x-1..=h.x+1).contains(&t.x) && (h.y-1..=h.y+1).contains(&t.y) {
+        return;
+    }
+
+    if h.x - 1 > t.x {
         t.x = h.x - 1;
         t.y = h.y;
-    } else if h.x < t.x-1 {
+    }
+
+    if h.x + 1 < t.x {
         t.x = h.x + 1;
         t.y = h.y;
-    } else if h.y > t.y+1 {
-        t.x = h.x;
+    }
+
+    if h.y - 1 > t.y {
         t.y = h.y - 1;
-    } else if h.y < t.y - 1 {
         t.x = h.x;
+    }
+
+    if h.y + 1 < t.y {
         t.y = h.y + 1;
+        t.x = h.x;
     }
 }
 
@@ -57,7 +67,7 @@ fn part2() {
     const TAIL: usize = 9;
 
     let mut tpos = HashSet::<Point>::new();
-    tpos.insert(points[TAIL].clone());
+    tpos.insert(points[TAIL]);
 
     for movement in &movements() {
         for _ in 0..movement.count {
@@ -69,12 +79,9 @@ fn part2() {
             };
 
             for pos in HEAD..TAIL {
-                let leader = &points[pos];
-                let mut follower = points[pos+1].clone();
-                follow(leader, &mut follower);
-
-                points[pos+1].x = follower.x;
-                points[pos+1].y = follower.y;
+                let leader = points[pos];
+                let follower = &mut points[pos+1];
+                follow(&leader, follower);
             }
 
             tpos.insert(points[TAIL].clone());
