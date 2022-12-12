@@ -12,33 +12,14 @@ fn part1() {
     let use_real = true;
     let g = Grid::parse(use_real);
 
-    println!("{}", g.find_shortest_path());
+    println!("{}", g.find_shortest_path(true));
 }
 
 fn part2() {
     let use_real = true;
-    let mut g = Grid::parse(use_real);
+    let g = Grid::parse(use_real);
 
-    // find all possible starting positions
-    let mut start_positions = vec![];
-    for row in 0..g.num_rows {
-        for col in 0..g.num_cols {
-            if g.rows[row][col] == b'a' {
-                start_positions.push(Coordinate{row, col});
-            }
-        }
-    }
-
-    let mut shortest = usize::MAX;
-    for coord in start_positions {
-        g.start_pos = coord;
-        let dist = g.find_shortest_path();
-        if dist < shortest {
-            shortest = dist;
-        }
-    }
-
-    println!("{}", shortest);
+    println!("{}", g.find_shortest_path(false));
 }
 
 #[derive(Debug, Hash, Eq, PartialEq, Copy, Clone)]
@@ -94,13 +75,18 @@ impl Grid {
         }
     }
 
-    fn find_shortest_path(&self) -> usize {
+    fn find_shortest_path(&self, ascending: bool) -> usize {
         // use BFS to find shortest path from S to E.
         let mut visited: HashMap<Coordinate, usize> = HashMap::new();
         let mut to_visit: VecDeque<Coordinate> = VecDeque::new();
 
-        visited.insert(self.start_pos, 0);
-        to_visit.push_back(self.start_pos);
+        if ascending {
+            visited.insert(self.start_pos, 0);
+            to_visit.push_back(self.start_pos);
+        } else {
+            visited.insert(self.end_pos, 0);
+            to_visit.push_back(self.end_pos);
+        }
 
         while let Some(coordinate) = to_visit.pop_front() {
             let elevation = self.rows[coordinate.row][coordinate.col];
@@ -109,8 +95,12 @@ impl Grid {
             // find neighbors that have not been visited.
             for neighbor in self.neighbors(&coordinate) {
                 let neighbor_elevation = self.rows[neighbor.row][neighbor.col];
-                if neighbor_elevation <= elevation + 1 && !visited.contains_key(&neighbor) {
-                    if neighbor == self.end_pos {
+                let can_travel = match ascending {
+                    true => neighbor_elevation <= elevation + 1,
+                    false => neighbor_elevation >= elevation - 1,
+                };
+                if can_travel && !visited.contains_key(&neighbor) {
+                    if ascending && neighbor == self.end_pos || !ascending && neighbor_elevation == b'a' {
                         return curr_distance+1;
                     }
                     visited.insert(neighbor, curr_distance+1);
