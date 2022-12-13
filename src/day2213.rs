@@ -23,6 +23,21 @@ fn part1() {
 }
 
 fn part2() {
+    let mut packets = parse_packets(TestMode::Live);
+    let d1 = &Packet::parse("[[2]]");
+    let d2 = &Packet::parse("[[6]]");
+    packets.push(d1.clone());
+    packets.push(d2.clone());
+    packets.sort_by(|a, b| a.compare(b));
+
+    let mut product = 1;
+    for (i, p) in packets.iter().enumerate() {
+        if p.compare(d1) == Ordering::Equal || p.compare(d2) == Ordering::Equal {
+            product *= i+1;
+        }
+    }
+
+    println!("{:?}", product);
 }
 
 fn parse_pairs(test_mode: TestMode) -> Vec<(Packet, Packet)> {
@@ -43,7 +58,20 @@ fn parse_pairs(test_mode: TestMode) -> Vec<(Packet, Packet)> {
     v
 }
 
-#[derive(Debug)]
+fn parse_packets(test_mode: TestMode) -> Vec<Packet> {
+    let mut v = vec![];
+
+    for line in input(test_mode).lines() {
+        let line = line.trim();
+        if !line.is_empty() {
+            v.push(Packet::parse(line));
+        }
+    }
+
+    v
+}
+
+#[derive(Debug, Clone)]
 enum Packet {
     Int(i32),
     List(Vec<Packet>),
