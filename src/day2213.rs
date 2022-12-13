@@ -1,3 +1,6 @@
+use std::cmp::Ordering;
+use std::iter::zip;
+
 pub fn run(part: i8) {
     if part == 1 {
         part1();
@@ -7,8 +10,16 @@ pub fn run(part: i8) {
 }
 
 fn part1() {
-    let pairs = parse_pairs(TestMode::Test);
-    println!("{:#?}", pairs);
+    let pairs = parse_pairs(TestMode::Live);
+    let mut answer = 0;
+
+    for (i, (p1, p2)) in pairs.iter().enumerate() {
+       if p1.compare(p2) == Ordering::Less {
+            answer += i + 1;
+        }
+    }
+
+    println!("{}", answer);
 }
 
 fn part2() {
@@ -91,6 +102,35 @@ impl Packet {
         }
 
         Some((s_idx, s.len()-1))
+    }
+
+    fn compare(&self, other: &Self) -> Ordering {
+        match self {
+            Self::Int(s_int) => match other {
+                Self::Int(o_int) => s_int.cmp(&o_int),
+                Self::List(_) => {
+                    let s_wrapped = &Self::List(vec![Self::Int(*s_int)]);
+                    s_wrapped.compare(other)
+                },
+            },
+            Self::List(s_list) => match other {
+                Self::Int(o_int) => {
+                    let o_wrapped = Self::List(vec![Self::Int(*o_int)]);
+                    self.compare(&o_wrapped)
+                },
+                Self::List(o_list) => {
+                    for (l, r) in zip(s_list, o_list) {
+                        match l.compare(r) {
+                            Ordering::Less => return Ordering::Less,
+                            Ordering::Greater => return Ordering::Greater,
+                            _ => (),
+                        }
+                    }
+
+                    s_list.len().cmp(&o_list.len())
+                },
+            },
+        }
     }
 }
 
