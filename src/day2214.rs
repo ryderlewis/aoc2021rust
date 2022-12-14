@@ -15,6 +15,9 @@ fn part1() {
 }
 
 fn part2() {
+    let mut cave = Cave::parse();
+    cave.add_floor();
+    println!("{}", cave.fill());
 }
 
 #[derive(Debug, Hash, Eq, PartialEq, Copy, Clone)]
@@ -66,8 +69,8 @@ impl Cave {
         let mut materials = HashMap::new();
         let mut bottom_y = i32::MIN;
 
-        for line in input_real().lines() {
-            let mut segments = line.trim().split(" -> ");
+        for line in input().lines() {
+            let segments = line.trim().split(" -> ");
             let mut last_coord: Option<Coord> = None;
 
             for c in segments {
@@ -122,21 +125,31 @@ impl Cave {
                     // come to rest
                     self.materials.insert(sand_coord, Material::Sand);
                     fill_count += 1;
+                    if sand_coord == self.source {
+                        return fill_count;
+                    }
                     break;
                 }
             }
         }
     }
+
+    fn add_floor(&mut self) {
+        self.bottom_y += 2;
+        for x in -self.bottom_y-3..=self.bottom_y+3 {
+            self.materials.insert(Coord(500 + x, self.bottom_y), Material::Rock);
+        }
+    }
 }
 
-fn input() -> &'static str {
+fn input_test() -> &'static str {
     r###"
 498,4 -> 498,6 -> 496,6
 503,4 -> 502,4 -> 502,9 -> 494,9
     "###.trim()
 }
 
-fn input_real() -> &'static str {
+fn input() -> &'static str {
     r###"
 521,154 -> 526,154
 474,44 -> 474,38 -> 474,44 -> 476,44 -> 476,39 -> 476,44 -> 478,44 -> 478,34 -> 478,44 -> 480,44 -> 480,40 -> 480,44 -> 482,44 -> 482,36 -> 482,44 -> 484,44 -> 484,34 -> 484,44 -> 486,44 -> 486,38 -> 486,44 -> 488,44 -> 488,36 -> 488,44 -> 490,44 -> 490,36 -> 490,44
