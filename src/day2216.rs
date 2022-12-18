@@ -10,7 +10,7 @@ pub fn run(part: i8) {
 }
 
 fn input() -> &'static str {
-    return input_test();
+    return input_real();
 }
 
 fn part1() {
@@ -69,6 +69,102 @@ fn pressure_relief(time_remaining: i32, pos: String, visited: &mut HashSet<Strin
 }
 
 fn part2() {
+    let valves = Valve::parse_all();
+
+    // build a map of distances by running BFS from each valve to all other valves
+    let mut bfs: HashMap<String, HashMap<String, i32>> = HashMap::new();
+    for valve in valves.values() {
+        if valve.flow > 0 || valve.name == "AA" {
+            bfs.insert(valve.name.clone(), valve.bfs_distances(&valves));
+        }
+    }
+
+    // brute force the best
+    let mut visited: HashSet<String> = HashSet::new();
+    visited.insert("AA".to_string());
+
+    let state = State {
+        pos_a: String::from("AA"),
+        arrive_a: 26,
+        pos_b: String::from("AA"),
+        arrive_b: 26,
+    };
+
+    println!("{}", pressure_relief_2(&state, &mut visited, &bfs, &valves));
+}
+
+struct State {
+    pos_a: String,
+    arrive_a: i32,
+    pos_b: String,
+    arrive_b: i32,
+}
+
+fn pressure_relief_2(state: &State, visited: &mut HashSet<String>, bfs: &HashMap<String, HashMap<String, i32>>,
+                   valves: &HashMap<String, Valve>) -> i32 {
+    // decide whether to operate on A or B (person or elephant)
+    let op_on_a = state.arrive_a >= state.arrive_b;
+    let mut time_remaining = if op_on_a { state.arrive_a } else { state.arrive_b };
+    let pos = if op_on_a { state.pos_a.clone() } else { state.pos_b.clone() };
+
+    // if time remaining is 1 minute or less, there's nothing left that can improve pressure relief
+    if time_remaining <= 1 {
+        return 0;
+    }
+
+    let valve = valves.get(&pos).unwrap();
+    let dists = bfs.get(&pos).unwrap();
+
+    let mut next_state = State {
+        pos_a: state.pos_a.clone(),
+        pos_b: state.pos_b.clone(),
+        arrive_a: state.arrive_a,
+        arrive_b: state.arrive_b,
+    };
+
+    let mut curr_relief = 0;
+    // check that visited doesn't already contain the pos before opening the valve,
+    // this can happen when an actor simply hangs out for a minute at the same spot
+    // after opening the valve.
+    let mut i_visited = false;
+    if valve.flow > 0 && !visited.contains(&pos) {
+        time_remaining -= 1;
+        curr_relief = time_remaining * valve.flow;
+        i_visited = true;
+        visited.insert(pos.clone());
+    }
+    if valve.flow > 0 && !i_visited {
+        return 0;
+    }
+
+    // go through possible options
+    let mut max_relief = 0;
+
+    for (next_pos, dist) in dists {
+        if visited.contains(next_pos) {
+            continue;
+        }
+        let next_valve = valves.get(next_pos).unwrap();
+        if next_valve.flow == 0 {
+            continue;
+        }
+
+        if op_on_a {
+            next_state.pos_a = next_pos.clone();
+            next_state.arrive_a = time_remaining - *dist;
+        } else {
+            next_state.pos_b = next_pos.clone();
+            next_state.arrive_b = time_remaining - *dist;
+        }
+
+        max_relief = max(max_relief, pressure_relief_2(&next_state, visited, bfs, valves));
+    }
+
+    if i_visited {
+        visited.remove(&pos);
+    }
+
+    curr_relief + max_relief
 }
 
 #[derive(Debug)]
