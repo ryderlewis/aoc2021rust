@@ -8,20 +8,135 @@ pub fn run(part: i8) {
 
 fn part1() {
     let shapes = Shape::make_shapes();
-    println!("{:#?}", shapes);
     let dirs = parse_input();
-    println!("{:?}", dirs);
+
+    let mut board = Board::new(shapes, dirs);
+    for _ in 0..2022 {
+        board.drop_shape();
+    }
+
+    println!("{}", board.height());
 }
 
 fn part2() {
 }
 
 #[derive(Debug)]
+struct Board {
+    rows: Vec<Vec<bool>>,
+    shapes: Vec<Shape>,
+    wind: Vec<Dir>,
+
+    shape_idx: usize,
+    wind_idx: usize,
+}
+
+impl Board {
+    fn new(shapes: Vec<Shape>, wind: Vec<Dir>) -> Self {
+        Self {
+            rows: vec![],
+            shape_idx: shapes.len()-1,
+            wind_idx: wind.len()-1,
+            shapes,
+            wind,
+        }
+    }
+
+    fn drop_shape(&mut self) {
+        self.next_shape();
+        let mut left_edge = 2 as usize;
+        let mut bottom_edge = self.height() + 3;
+
+        loop {
+            self.next_wind();
+            let dir = self.curr_wind();
+
+            left_edge = self.try_wind(left_edge, bottom_edge, dir);
+            if self.try_drop(left_edge, bottom_edge) {
+                bottom_edge -= 1;
+            } else {
+                self.settle(left_edge, bottom_edge);
+                return;
+            }
+        }
+    }
+
+    fn try_wind(&self, left_edge: usize, bottom_edge: usize, dir: &Dir) -> usize {
+        let shape = self.curr_shape();
+
+        // TODO implement
+        left_edge
+    }
+
+    fn try_drop(&self, left_edge: usize, bottom_edge: usize) -> bool {
+        // TODO implement
+        bottom_edge > 0
+    }
+
+    fn settle(&mut self, left_edge: usize, bottom_edge: usize) {
+        let shape = self.curr_shape().clone();
+
+        // ensure the grid is tall enough to handle this shape
+        for _ in self.height()..bottom_edge+shape.height() {
+            self.rows.push(vec![false; 7]);
+        }
+
+        // start from bottom of the shape, adding to self one row at a time.
+        for from_bottom in 0..shape.height() {
+            let shape_row = shape.row(from_bottom);
+            let my_row = bottom_edge + from_bottom;
+
+            for (i, b) in shape_row.iter().enumerate() {
+                self.rows[my_row][left_edge+i] = *b;
+            }
+        }
+    }
+
+    fn height(&self) -> usize {
+        self.rows.len()
+    }
+
+    fn curr_shape(&self) -> &Shape {
+        &self.shapes[self.shape_idx]
+    }
+
+    fn next_shape(&mut self) -> &Shape {
+        self.shape_idx += 1;
+        self.shape_idx %= self.shapes.len();
+
+        self.curr_shape()
+    }
+
+    fn curr_wind(&self) -> &Dir {
+        &self.wind[self.wind_idx]
+    }
+
+    fn next_wind(&mut self) -> &Dir {
+        self.wind_idx += 1;
+        self.wind_idx %= self.wind.len();
+
+        self.curr_wind()
+    }
+}
+
+#[derive(Debug, Clone)]
 struct Shape {
     rows: Vec<Vec<bool>>,
 }
 
 impl Shape {
+    fn height(&self) -> usize {
+        self.rows.len()
+    }
+
+    fn width(&self) -> usize {
+        self.rows[0].len()
+    }
+
+    fn row(&self, from_bottom: usize) -> &Vec<bool> {
+        &self.rows[self.height()-1-from_bottom]
+    }
+
     fn make_shapes() -> Vec<Self> {
         let mut v = vec![];
 
