@@ -1,3 +1,5 @@
+use std::cmp::max;
+
 pub fn run(part: i8) {
     if part == 1 {
         part1();
@@ -11,12 +13,10 @@ fn part1() {
     let dirs = parse_input();
 
     let mut board = Board::new(shapes, dirs, 7);
-    for _ in 0..2022 {
-        // board.print();
+    for _ in 1..=2022 {
         board.drop_shape();
     }
 
-    // board.print();
     println!("{}", board.height());
 }
 
@@ -32,6 +32,7 @@ struct Board {
     shape_idx: usize,
     wind_idx: usize,
     width: usize,
+    stack_height: usize,
 }
 
 impl Board {
@@ -43,10 +44,11 @@ impl Board {
             shapes,
             wind,
             width,
+            stack_height: 0,
         }
     }
 
-    fn print(&self) {
+    fn print(&self, in_flight: bool, left_edge: usize, bottom_edge: usize) {
         println!();
         print!("|");
         for _ in 0..self.width {
@@ -54,12 +56,32 @@ impl Board {
         }
         println!("|");
 
-        let mut row = self.rows.len();
+        let mut row = self.stack_height;
+        if in_flight {
+            row = max(row, bottom_edge + self.curr_shape().height());
+        }
         while row > 0 {
             row -= 1;
             print!("|");
             for i in 0..self.width {
-                print!("{}", if self.rows[row][i] { "#" } else { "." });
+                if row >= bottom_edge && row < bottom_edge + self.curr_shape().height() {
+                    let shape_row = self.curr_shape().row(row-bottom_edge);
+                    if i >= left_edge && i < left_edge + shape_row.len() {
+                        if shape_row[i-left_edge] {
+                            print!("@");
+                        } else {
+                            print!("{}", if self.rows[row][i] { "#" } else { "." });
+                        }
+                    } else if row >= self.rows.len() {
+                        print!(".");
+                    } else {
+                        print!("{}", if self.rows[row][i] { "#" } else { "." });
+                    }
+                } else if row >= self.rows.len() {
+                    print!(".");
+                } else {
+                    print!("{}", if self.rows[row][i] { "#" } else { "." });
+                }
             }
             println!("|");
         }
@@ -79,6 +101,8 @@ impl Board {
         loop {
             self.next_wind();
             let dir = self.curr_wind();
+            // println!("DIR: {:?}", *dir);
+            // self.print(true, left_edge, bottom_edge);
 
             left_edge = self.try_wind(left_edge, bottom_edge, dir);
             if self.try_drop(left_edge, bottom_edge) {
@@ -144,7 +168,7 @@ impl Board {
         let shape = self.curr_shape().clone();
 
         // ensure the grid is tall enough to handle this shape
-        for _ in self.height()..bottom_edge+shape.height() {
+        for _ in self.height()..=bottom_edge+shape.height()+5 {
             self.rows.push(vec![false; 7]);
         }
 
@@ -157,10 +181,12 @@ impl Board {
                 self.rows[my_row][left_edge+i] = *b;
             }
         }
+
+        self.stack_height = max(self.stack_height, bottom_edge + shape.height());
     }
 
     fn height(&self) -> usize {
-        self.rows.len()
+        self.stack_height
     }
 
     fn curr_shape(&self) -> &Shape {
