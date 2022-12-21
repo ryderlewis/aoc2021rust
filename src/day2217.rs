@@ -13,7 +13,11 @@ fn part1() {
     let dirs = parse_input();
 
     let mut board = Board::new(shapes, dirs, 7);
-    for _ in 1..=2022 {
+    for i in 0..170 {
+        println!("{i}: {}", board.height());
+        if i >= 167 {
+            board.print(false, 0, 0);
+        }
         board.drop_shape();
     }
 
@@ -64,7 +68,7 @@ impl Board {
             row -= 1;
             print!("|");
             for i in 0..self.width {
-                if row >= bottom_edge && row < bottom_edge + self.curr_shape().height() {
+                if in_flight && row >= bottom_edge && row < bottom_edge + self.curr_shape().height() {
                     let shape_row = self.curr_shape().row(row-bottom_edge);
                     if i >= left_edge && i < left_edge + shape_row.len() {
                         if shape_row[i-left_edge] {
