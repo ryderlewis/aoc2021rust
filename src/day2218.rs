@@ -1,4 +1,5 @@
-use std::collections::HashSet;
+use std::cmp::{max, min};
+use std::collections::{HashSet, VecDeque};
 
 pub fn run(part: i8) {
     if part == 1 {
@@ -43,6 +44,92 @@ fn part1() {
 }
 
 fn part2() {
+    // naive approach, build a "pocket" of air surrounding the shape,
+    // then use bfs from an outer cube to find everything that is exterior
+    // to the shape.
+    let coords = Coord::parse();
+    let mut cset = HashSet::new();
+    let mut min_x = i32::MAX;
+    let mut min_y = i32::MAX;
+    let mut min_z = i32::MAX;
+    let mut max_x = i32::MIN;
+    let mut max_y = i32::MIN;
+    let mut max_z = i32::MIN;
+
+    for coord in &coords {
+        cset.insert(*coord);
+        min_x = min(min_x, coord.x-1);
+        min_y = min(min_y, coord.y-1);
+        min_z = min(min_z, coord.z-1);
+        max_x = max(max_x, coord.x+1);
+        max_y = max(max_y, coord.y+1);
+        max_z = max(max_z, coord.z+1);
+    }
+
+    let mut aset = HashSet::new();
+    aset.insert(Coord::new(min_x, min_y, min_z));
+
+    let mut air_vec = VecDeque::new();
+    air_vec.push_back(Coord::new(min_x, min_y, min_z));
+
+    let mut surface_area = 0;
+    while let Some(air) = air_vec.pop_front() {
+        // try all six directions
+        let mut neighbor = air;
+
+        neighbor.x -= 1;
+        if cset.contains(&neighbor) {
+            surface_area += 1
+        } else if neighbor.x >= min_x && !aset.contains(&neighbor) {
+            aset.insert(neighbor);
+            air_vec.push_back(neighbor);
+        }
+
+        neighbor.x += 2;
+        if cset.contains(&neighbor) {
+            surface_area += 1
+        } else if neighbor.x <= max_x && !aset.contains(&neighbor) {
+            aset.insert(neighbor);
+            air_vec.push_back(neighbor);
+        }
+        neighbor.x -= 1;
+
+        neighbor.y -= 1;
+        if cset.contains(&neighbor) {
+            surface_area += 1
+        } else if neighbor.y >= min_y && !aset.contains(&neighbor) {
+            aset.insert(neighbor);
+            air_vec.push_back(neighbor);
+        }
+
+        neighbor.y += 2;
+        if cset.contains(&neighbor) {
+            surface_area += 1
+        } else if neighbor.y <= max_y && !aset.contains(&neighbor) {
+            aset.insert(neighbor);
+            air_vec.push_back(neighbor);
+        }
+        neighbor.y -= 1;
+
+        neighbor.z -= 1;
+        if cset.contains(&neighbor) {
+            surface_area += 1
+        } else if neighbor.z >= min_z && !aset.contains(&neighbor) {
+            aset.insert(neighbor);
+            air_vec.push_back(neighbor);
+        }
+
+        neighbor.z += 2;
+        if cset.contains(&neighbor) {
+            surface_area += 1
+        } else if neighbor.z <= max_z && !aset.contains(&neighbor) {
+            aset.insert(neighbor);
+            air_vec.push_back(neighbor);
+        }
+        neighbor.z -= 1;
+    }
+
+    println!("{surface_area}");
 }
 
 #[derive(Debug, Hash, Eq, PartialEq, Copy, Clone)]
