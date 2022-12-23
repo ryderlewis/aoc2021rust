@@ -9,11 +9,23 @@ pub fn run(part: i8) {
 }
 
 fn part1() {
-    let mut monkeys = Monkeys::parse();
-    println!("{}", monkeys.calculate("root".to_string()));
+    let mut monkeys = Monkeys::parse(1);
+    println!("{}", monkeys.calculate("root".to_string()).unwrap());
 }
 
 fn part2() {
+    let mut monkeys = Monkeys::parse(2);
+    let root = monkeys.monkeys.get_mut("root").unwrap();
+    if let Shout::Op(a, _, b) = &root.shout {
+        let a = a.clone();
+        let b = b.clone();
+
+        print!("{a}: ");
+        println!("{:?}", monkeys.calculate(a));
+
+        print!("{b}: ");
+        println!("{:?}", monkeys.calculate(b));
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -22,12 +34,14 @@ enum Operation {
     Minus,
     Times,
     Divide,
+    Equals,
 }
 
 #[derive(Debug)]
 enum Shout {
     Num(i64),
     Op(String, Operation, String),
+    Human,
 }
 
 #[derive(Debug)]
@@ -37,26 +51,39 @@ struct Monkey {
 }
 
 impl Monkey {
-    fn parse(line: &str) -> Self {
+    fn parse(line: &str, part: i8) -> Self {
         let parts: Vec<&str> = line.trim().split_whitespace().collect();
-        if parts.len() == 2 {
-            let answer = parts[1].parse::<i64>().unwrap();
+        let name = parts[0][..4].to_string();
 
-            Self {
-                name: parts[0][..4].to_string(),
-                shout: Shout::Num(answer),
+        if parts.len() == 2 {
+            if part == 2 && name == "humn" {
+                Self {
+                    name,
+                    shout: Shout::Human,
+                }
+            } else {
+                let answer = parts[1].parse::<i64>().unwrap();
+
+                Self {
+                    name,
+                    shout: Shout::Num(answer),
+                }
             }
         } else {
-            let operation = match parts[2] {
-                "+" => Operation::Plus,
-                "-" => Operation::Minus,
-                "*" => Operation::Times,
-                "/" => Operation::Divide,
-                other => panic!("{other} is not a valid operation"),
+            let operation = if part == 2 && name == "root" {
+                Operation::Equals
+            } else {
+                match parts[2] {
+                    "+" => Operation::Plus,
+                    "-" => Operation::Minus,
+                    "*" => Operation::Times,
+                    "/" => Operation::Divide,
+                    other => panic!("{other} is not a valid operation"),
+                }
             };
 
             Self {
-                name: parts[0][..4].to_string(),
+                name,
                 shout: Shout::Op(parts[1].to_string(), operation, parts[3].to_string()),
             }
         }
@@ -66,15 +93,15 @@ impl Monkey {
 #[derive(Debug)]
 struct Monkeys {
     monkeys: HashMap<String, Monkey>,
-    answers: HashMap<String, i64>,
+    answers: HashMap<String, Option<i64>>,
 }
 
 impl Monkeys {
-    fn parse() -> Self {
+    fn parse(part: i8) -> Self {
         let mut m = HashMap::new();
 
         for line in input().lines() {
-            let monkey = Monkey::parse(line);
+            let monkey = Monkey::parse(line, part);
             m.insert(monkey.name.clone(), monkey);
         }
 
@@ -84,14 +111,14 @@ impl Monkeys {
         }
     }
 
-    fn calculate(&mut self, name: String) -> i64 {
+    fn calculate(&mut self, name: String) -> Option<i64> {
         if let Some(answer) = self.answers.get(&name) {
             return *answer;
         }
 
         let monkey = self.monkeys.get(&name).unwrap();
         let val = match &monkey.shout {
-            Shout::Num(x) => *x,
+            Shout::Num(x) => Some(*x),
             Shout::Op(name_a, op, name_b) => {
                 let name_a = name_a.clone();
                 let name_b = name_b.clone();
@@ -100,13 +127,19 @@ impl Monkeys {
                 let val_a = self.calculate(name_a);
                 let val_b = self.calculate(name_b);
 
-                match op {
-                    Operation::Plus => val_a + val_b,
-                    Operation::Minus => val_a - val_b,
-                    Operation::Times => val_a * val_b,
-                    Operation::Divide => val_a / val_b,
+                if val_a.is_none() || val_b.is_none() {
+                    None
+                } else {
+                    Some(match op {
+                        Operation::Plus => val_a.unwrap() + val_b.unwrap(),
+                        Operation::Minus => val_a.unwrap() - val_b.unwrap(),
+                        Operation::Times => val_a.unwrap() * val_b.unwrap(),
+                        Operation::Divide => val_a.unwrap() / val_b.unwrap(),
+                        Operation::Equals => if val_a.unwrap() == val_b.unwrap() { 1 } else { 0 },
+                    })
                 }
             },
+            Shout::Human => None,
         };
 
         self.answers.insert(name, val);
