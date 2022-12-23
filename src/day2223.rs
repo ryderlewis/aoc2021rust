@@ -12,6 +12,7 @@ pub fn run(part: i8) {
 fn part1() {
     let mut grove = Grove::parse();
     grove.plan();
+    grove.execute();
 
     println!("{:#?}", grove);
 }
@@ -145,7 +146,13 @@ impl Grove {
     }
 
     fn execute(&mut self) {
-
+        // see which elves want to move, vs those that can.
+        let mut target_counts= HashMap::<Coord, i32>::new();
+        for elf in self.elves.values() {
+            if let Some(target) = elf.next_coord {
+                *target_counts.entry(target).or_insert(0) += 1;
+            }
+        }
     }
 }
 
