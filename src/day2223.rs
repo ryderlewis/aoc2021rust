@@ -1,3 +1,6 @@
+use std::cmp::max;
+use std::collections::{HashMap, HashSet};
+
 pub fn run(part: i8) {
     if part == 1 {
         part1();
@@ -7,12 +10,16 @@ pub fn run(part: i8) {
 }
 
 fn part1() {
+    let mut grove = Grove::parse();
+    grove.plan();
+
+    println!("{:#?}", grove);
 }
 
 fn part2() {
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 enum Dir {
     North,
     South,
@@ -22,14 +29,124 @@ enum Dir {
 
 const DIRS: [Dir; 4] = [Dir::North, Dir::South, Dir::West, Dir::East];
 
-#[derive(Debug, Hash, Eq, PartialEq, Copy)]
+#[derive(Debug, Hash, Eq, PartialEq, Clone, Copy)]
 struct Coord(i32, i32);
 
 #[derive(Debug)]
 struct Elf {
     coord: Coord,
-    next_coord: Coord,
+    next_coord: Option<Coord>,
     next_dir: usize,
+}
+
+impl Elf {
+    fn neighbors(&self, dir: Option<&Dir>) -> Vec<Coord> {
+        let mut v = vec![];
+
+        for dx in -1..=1 {
+            for dy in -1..=1 {
+                let is_neighbor = if dx == 0 && dy == 0 {
+                    false
+                } else {
+                    match dir {
+                        None => true,
+                        Some(dir) => {
+                            match dir {
+                                Dir::North => dy == -1,
+                                Dir::South => dy == 1,
+                                Dir::East => dx == 1,
+                                Dir::West => dx == -1,
+                            }
+                        },
+                    }
+                };
+
+                if is_neighbor {
+                    v.push(Coord(self.coord.0 + dx, self.coord.1 + dy));
+                }
+            }
+        }
+
+        v
+    }
+}
+
+#[derive(Debug)]
+struct Grove {
+    elves: HashMap<Coord, Elf>,
+    upper_left: Coord,
+    lower_right: Coord,
+}
+
+impl Grove {
+    fn parse() -> Self {
+        let upper_left = Coord(0, 0);
+        let mut lower_right = Coord(0, 0);
+        let mut elves = HashMap::new();
+
+        for (y, line) in input().lines().enumerate() {
+            let line = line.trim();
+
+            for (x, c) in line.chars().enumerate() {
+                if c == '#' {
+                    let coord = Coord(x as i32, y as i32);
+                    elves.insert(coord, Elf {
+                        coord,
+                        next_coord: None,
+                        next_dir: 0,
+                    });
+                }
+            }
+
+            lower_right.0 = max(lower_right.0, line.len() as i32 - 1);
+            lower_right.1 = y as i32;
+        }
+
+        Self {
+            elves,
+            upper_left,
+            lower_right,
+        }
+    }
+
+    fn plan(&mut self) {
+        // see which elves are going to even consider taking a turn
+        let mut elves_with_turns = Vec::<Coord>::new();
+        let mut neighbor_coords = HashSet::<Coord>::new();
+
+        for (coord, elf) in self.elves.iter() {
+            // elves need at least one neighbor to do anything on their turn
+            for neighbor in &elf.neighbors(None) {
+                if self.elves.contains_key(neighbor) {
+                    elves_with_turns.push(*coord);
+                    neighbor_coords.insert(*coord);
+                    break;
+                }
+            }
+        }
+
+        // for each elf that wants to take a turn, see where they will go.
+        for coord in &elves_with_turns {
+            let elf = self.elves.get_mut(coord).unwrap();
+            elf.next_coord = None;
+            for i in 0..4 {
+                let proposed_dir = &DIRS[(elf.next_dir + i) % DIRS.len()];
+                let neighbors = elf.neighbors(Some(proposed_dir));
+                // if there are no neighbors in the given direction, then propose the elf moves in
+                // that direction
+                if neighbors.iter().any(|n| neighbor_coords.contains(n)) {
+                    continue;
+                }
+                elf.next_coord = Some(neighbors[1]);
+            }
+            elf.next_dir += 1;
+            elf.next_dir %= 4;
+        }
+    }
+
+    fn execute(&mut self) {
+
+    }
 }
 
 fn input() -> &'static str {
