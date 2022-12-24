@@ -11,11 +11,12 @@ pub fn run(part: i8) {
 
 fn part1() {
     let valley = Valley::parse();
-    println!("{}", valley.bfs());
+    println!("{}", valley.bfs(1));
 }
 
 fn part2() {
-
+    let valley = Valley::parse();
+    println!("{}", valley.bfs(3));
 }
 
 #[derive(Debug, Eq, PartialEq)]
@@ -108,29 +109,37 @@ impl Valley {
         }
     }
 
-    fn bfs(&self) -> i32 {
-        let mut visited = HashSet::<Coord>::new();
-        let mut to_visit = VecDeque::<(Coord, i32)>::new();
+    fn bfs(&self, targets: i32) -> i32 {
+        let mut visited = HashSet::<(Coord, i32)>::new();
+        let mut to_visit = VecDeque::<(Coord, i32, i32)>::new();
 
         let starting_coord = Coord{time: 0, row: 0, col: 1};
-        visited.insert(starting_coord);
-        to_visit.push_back((starting_coord, 0));
-        let target_row = self.height-1;
-        let target_col = self.width-2;
+        visited.insert((starting_coord, targets));
+        to_visit.push_back((starting_coord, targets, 0));
+        let target_rows = [self.height-1, 0, self.height-1];
+        let target_cols = [self.width-2, 1, self.width-2];
 
-        while let Some((coord, distance)) = to_visit.pop_front() {
+        while let Some((coord, targets, distance)) = to_visit.pop_front() {
             // find neighbors
-            println!();
-            println!("Trying: {coord:?}, {distance}");
+            // println!();
+            // println!("Trying: {coord:?}, {distance}");
+            let target_row = target_rows[3-targets as usize];
+            let target_col = target_cols[3-targets as usize];
+
             for neighbor in self.neighbors(&coord) {
-                println!("Neighbor: {neighbor:?}");
+                // println!("Neighbor: {neighbor:?}");
+                let mut targets_remain = targets;
                 if neighbor.row == target_row && neighbor.col == target_col {
-                    return distance + 1;
+                    if targets == 1 {
+                        return distance + 1;
+                    } else {
+                        targets_remain -= 1;
+                    }
                 }
 
-                if !visited.contains(&neighbor) {
-                    visited.insert(neighbor);
-                    to_visit.push_back((neighbor, distance + 1));
+                if !visited.contains(&(neighbor, targets_remain)) {
+                    visited.insert((neighbor, targets_remain));
+                    to_visit.push_back((neighbor, targets_remain, distance + 1));
                 }
             }
         }
@@ -151,7 +160,7 @@ impl Valley {
         if !self.maze.contains(&neighbor) {
             v.push(neighbor);
         } else {
-            println!("Standing blocked: {neighbor:?}");
+            // println!("Standing blocked: {neighbor:?}");
         }
 
         // try up
@@ -160,7 +169,7 @@ impl Valley {
             if !self.maze.contains(&neighbor) {
                 v.push(neighbor);
             } else {
-                println!("Up blocked: {neighbor:?}");
+                // println!("Up blocked: {neighbor:?}");
             }
             neighbor.row += 1;
         }
@@ -171,7 +180,7 @@ impl Valley {
             if !self.maze.contains(&neighbor) {
                 v.push(neighbor);
             } else {
-                println!("Down blocked: {neighbor:?}");
+                // println!("Down blocked: {neighbor:?}");
             }
             neighbor.row -= 1;
         }
@@ -182,7 +191,7 @@ impl Valley {
             if !self.maze.contains(&neighbor) {
                 v.push(neighbor);
             } else {
-                println!("Left blocked: {neighbor:?}");
+                // println!("Left blocked: {neighbor:?}");
             }
             neighbor.col += 1;
         }
@@ -193,7 +202,7 @@ impl Valley {
             if !self.maze.contains(&neighbor) {
                 v.push(neighbor);
             } else {
-                println!("Right blocked: {neighbor:?}");
+                // println!("Right blocked: {neighbor:?}");
             }
             neighbor.col -= 1;
         }
