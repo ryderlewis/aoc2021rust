@@ -11,19 +11,27 @@ pub fn run(part: i8) {
 
 fn part1() {
     let mut grove = Grove::parse();
-    for i in 0..10 {
-        println!("{}", i);
-        grove.print();
+    for _ in 0..10 {
         grove.plan();
-        println!("{:#?}", grove);
         grove.execute();
     }
 
     println!("{}", grove.tiles());
-    grove.print();
 }
 
 fn part2() {
+    let mut grove = Grove::parse();
+    let mut turn = 1;
+
+    loop {
+        grove.plan();
+        if !grove.execute() {
+            break;
+        }
+        turn += 1;
+    }
+
+    println!("{}", turn);
 }
 
 #[derive(Debug, Clone)]
@@ -137,12 +145,9 @@ impl Grove {
                     let neighbors = elf.neighbors(Some(proposed_dir));
                     // if there are no neighbors in the given direction, then propose the elf moves in
                     // that direction
-                    print!("Elf at {:?}, dir={:?}.. ", coord, proposed_dir);
                     if neighbors.iter().any(|n| neighbor_coords.contains(n)) {
-                        println!("Nope");
                         continue;
                     }
-                    println!("Yep");
                     elf.next_coord = Some(neighbors[1]);
                     break;
                 }
@@ -153,7 +158,7 @@ impl Grove {
         }
     }
 
-    fn execute(&mut self) {
+    fn execute(&mut self) -> bool {
         // see which elves want to move, vs those that can.
         let mut target_counts= HashMap::<Coord, i32>::new();
         for elf in self.elves.values() {
@@ -182,6 +187,8 @@ impl Grove {
                 self.elves.insert(new_coord, elf);
             }
         }
+
+        !moving_elves.is_empty()
     }
 
     fn bounds(&self) -> (Coord, Coord) {
@@ -214,7 +221,7 @@ impl Grove {
     }
 }
 
-fn input() -> &'static str {
+fn input_test() -> &'static str {
     r###"
 ..............
 ..............
@@ -231,7 +238,7 @@ fn input() -> &'static str {
     "###.trim()
 }
 
-fn input_real() -> &'static str {
+fn input() -> &'static str {
     r###"
 ..###.##.#.#.##..#.#.##..#.#.##.#.....#####.#.#..###.#.#....####.##.###.#
 ..#.##.#..###..###..#..#....#..##..#.###..#....##.##.#.....##.######.####
