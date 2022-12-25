@@ -12,12 +12,8 @@ fn part1() {
     let shapes = Shape::make_shapes();
     let dirs = parse_input();
 
-    let mut board = Board::new(shapes, dirs, 7);
-    for i in 0..170 {
-        println!("{i}: {}", board.height());
-        if i >= 167 {
-            board.print(false, 0, 0);
-        }
+    let mut board = Board::new(shapes, dirs);
+    for _ in 0..2022 {
         board.drop_shape();
     }
 
@@ -29,168 +25,144 @@ fn part2() {
 
 #[derive(Debug)]
 struct Board {
-    rows: Vec<Vec<bool>>,
+    rows: Vec<u8>,
     shapes: Vec<Shape>,
     wind: Vec<Dir>,
 
     shape_idx: usize,
     wind_idx: usize,
-    width: usize,
-    stack_height: usize,
 }
 
 impl Board {
-    fn new(shapes: Vec<Shape>, wind: Vec<Dir>, width: usize) -> Self {
+    fn new(shapes: Vec<Shape>, wind: Vec<Dir>) -> Self {
         Self {
             rows: vec![],
             shape_idx: shapes.len()-1,
             wind_idx: wind.len()-1,
             shapes,
             wind,
-            width,
-            stack_height: 0,
         }
     }
 
-    fn print(&self, in_flight: bool, left_edge: usize, bottom_edge: usize) {
-        println!();
-        print!("|");
-        for _ in 0..self.width {
-            print!(".");
-        }
-        println!("|");
-
-        let mut row = self.stack_height;
+    fn print(&self, in_flight: bool, bottom_row: usize) {
+        let mut row = self.height();
         if in_flight {
-            row = max(row, bottom_edge + self.curr_shape().height());
+            row = max(row, bottom_row + self.curr_shape().height());
         }
+
         while row > 0 {
             row -= 1;
             print!("|");
-            for i in 0..self.width {
-                if in_flight && row >= bottom_edge && row < bottom_edge + self.curr_shape().height() {
-                    let shape_row = self.curr_shape().row(row-bottom_edge);
-                    if i >= left_edge && i < left_edge + shape_row.len() {
-                        if shape_row[i-left_edge] {
-                            print!("@");
-                        } else {
-                            print!("{}", if self.rows[row][i] { "#" } else { "." });
-                        }
-                    } else if row >= self.rows.len() {
-                        print!(".");
+
+            if in_flight && bottom_row <= row && row < bottom_row + self.curr_shape().height() {
+                let shape_row = self.curr_shape().rows[row - bottom_row];
+                for i in (0..7).into_iter().rev() {
+                    if shape_row >> i & 1 == 1 {
+                        print!("@");
+                    } else if self.rows[row] >> i & 1 == 1 {
+                        print!("#");
                     } else {
-                        print!("{}", if self.rows[row][i] { "#" } else { "." });
+                        print!(".");
                     }
-                } else if row >= self.rows.len() {
-                    print!(".");
-                } else {
-                    print!("{}", if self.rows[row][i] { "#" } else { "." });
                 }
+            } else if row < self.height() {
+                for i in (0..7).into_iter().rev() {
+                    print!("{}", if self.rows[row] >> i & 1 == 1 { "#" } else { "." });
+                }
+            } else {
+                print!(".......");
             }
+
             println!("|");
         }
 
-        print!("+");
-        for _ in 0..self.width {
-            print!("-");
-        }
-        println!("+");
+        println!("+-------+");
     }
 
     fn drop_shape(&mut self) {
         self.next_shape();
-        let mut left_edge = 2 as usize;
-        let mut bottom_edge = self.height() + 3;
+        let mut shape = self.curr_shape().clone();
+        let mut bottom_row = self.height() + 3;
 
         loop {
             self.next_wind();
             let dir = self.curr_wind();
-            // println!("DIR: {:?}", *dir);
-            // self.print(true, left_edge, bottom_edge);
+            // self.print(true, left_edge, bottom_row);
 
-            left_edge = self.try_wind(left_edge, bottom_edge, dir);
-            if self.try_drop(left_edge, bottom_edge) {
-                bottom_edge -= 1;
+            if self.try_wind(bottom_row, &shape, dir) {
+                shape.wind_blow(dir);
+            }
+            if self.try_drop(bottom_row, &shape) {
+                bottom_row -= 1;
             } else {
-                self.settle(left_edge, bottom_edge);
+                self.settle(bottom_row, &shape);
                 return;
             }
         }
     }
 
-    fn try_wind(&self, left_edge: usize, bottom_edge: usize, dir: &Dir) -> usize {
-        let shape = self.curr_shape();
-
-        // see if shape exceeds the bounds of the board (and also set candidate new left edge)
-        let candidate_left_edge = match *dir {
+    fn try_wind(&self, bottom_row: usize, shape: &Shape, dir: &Dir) -> bool {
+        match dir {
             Dir::Left => {
-                if left_edge == 0 {
-                    return left_edge;
+                // see if wall hit occurs
+                for x in 0..shape.height() {
+                    if shape.row(x) >> 6 & 1 == 1 {
+                        return false;
+                    }
                 }
-                left_edge - 1
+
+                for row in bottom_row..bottom_row+shape.height() {
+                    if row < self.height() && shape.row(row-bottom_row) << 1 & self.rows[row] != 0 {
+                        return false;
+                    }
+                }
             },
             Dir::Right => {
-                if left_edge + shape.width() >= self.width {
-                    return left_edge;
+                // see if wall hit occurs
+                for x in 0..shape.height() {
+                    if shape.row(x) & 1 == 1 {
+                        return false;
+                    }
                 }
-                left_edge + 1
-            },
-        };
 
-        // see if any collisions would occur based on new position
-        if self.collides(shape, candidate_left_edge, bottom_edge) {
-            return left_edge
+                for row in bottom_row..bottom_row+shape.height() {
+                    if row < self.height() && shape.row(row-bottom_row) >> 1 & self.rows[row] != 0 {
+                        return false;
+                    }
+                }
+            }
         }
 
-        candidate_left_edge
+        true
     }
 
-    fn try_drop(&self, left_edge: usize, bottom_edge: usize) -> bool {
-        bottom_edge > 0 && !self.collides(self.curr_shape(), left_edge, bottom_edge - 1)
-    }
+    fn try_drop(&self, bottom_row: usize, shape: &Shape) -> bool {
+        if bottom_row == 0 {
+            return false;
+        }
 
-    fn collides(&self, shape: &Shape, left_edge: usize, bottom_edge: usize) -> bool {
-        // start from bottom of the shape, adding to self one row at a time.
-        for from_bottom in 0..shape.height() {
-            let shape_row = shape.row(from_bottom);
-            let my_row = bottom_edge + from_bottom;
-            if my_row >= self.rows.len() {
+        for i in 0..shape.height() {
+            let row = bottom_row + i - 1;
+            if row < self.height() && self.rows[row] & shape.row(i) != 0 {
                 return false;
             }
-
-            for (i, b) in shape_row.iter().enumerate() {
-                if *b && self.rows[my_row][left_edge+i] {
-                    return true;
-                }
-            }
         }
 
-        false
+        true
     }
 
-    fn settle(&mut self, left_edge: usize, bottom_edge: usize) {
-        let shape = self.curr_shape().clone();
-
-        // ensure the grid is tall enough to handle this shape
-        for _ in self.height()..=bottom_edge+shape.height()+5 {
-            self.rows.push(vec![false; 7]);
+    fn settle(&mut self, bottom_row: usize, shape: &Shape) {
+        while self.height() < bottom_row + shape.height() {
+            self.rows.push(0);
         }
 
-        // start from bottom of the shape, adding to self one row at a time.
-        for from_bottom in 0..shape.height() {
-            let shape_row = shape.row(from_bottom);
-            let my_row = bottom_edge + from_bottom;
-
-            for (i, b) in shape_row.iter().enumerate() {
-                self.rows[my_row][left_edge+i] = *b;
-            }
+        for i in 0..shape.height() {
+            self.rows[bottom_row+i] |= shape.row(i);
         }
-
-        self.stack_height = max(self.stack_height, bottom_edge + shape.height());
     }
 
     fn height(&self) -> usize {
-        self.stack_height
+        self.rows.len()
     }
 
     fn curr_shape(&self) -> &Shape {
@@ -218,7 +190,7 @@ impl Board {
 
 #[derive(Debug, Clone)]
 struct Shape {
-    rows: Vec<Vec<bool>>,
+    rows: Vec<u8>,
 }
 
 impl Shape {
@@ -226,12 +198,23 @@ impl Shape {
         self.rows.len()
     }
 
-    fn width(&self) -> usize {
-        self.rows[0].len()
+    fn row(&self, from_bottom: usize) -> u8 {
+        self.rows[from_bottom]
     }
 
-    fn row(&self, from_bottom: usize) -> &Vec<bool> {
-        &self.rows[self.height()-1-from_bottom]
+    fn wind_blow(&mut self, dir: &Dir) {
+        match dir {
+            Dir::Left => {
+                for v in self.rows.iter_mut() {
+                    *v <<= 1;
+                }
+            },
+            Dir::Right => {
+                for v in self.rows.iter_mut() {
+                    *v >>= 1;
+                }
+            },
+        }
     }
 
     fn make_shapes() -> Vec<Self> {
@@ -239,21 +222,21 @@ impl Shape {
 
         // ####
         v.push(Self{
-            rows: vec![vec![true; 4]],
+            rows: vec![0b0011110],
         });
 
         // .#.
         // ###
         // .#.
         v.push(Self{
-            rows: vec![vec![false, true, false], vec![true; 3], vec![false, true, false]],
+            rows: vec![0b0001000, 0b0011100, 0b0001000],
         });
 
         // ..#
         // ..#
         // ###
         v.push(Self{
-            rows: vec![vec![false, false, true], vec![false, false, true], vec![true; 3]],
+            rows: vec![0b0011100, 0b0000100, 0b0000100],
         });
 
         // #
@@ -261,13 +244,13 @@ impl Shape {
         // #
         // #
         v.push(Self{
-            rows: vec![vec![true], vec![true], vec![true], vec![true]],
+            rows: vec![0b0010000; 4],
         });
 
         // ##
         // ##
         v.push(Self{
-            rows: vec![vec![true; 2], vec![true; 2]],
+            rows: vec![0b0011000; 2],
         });
 
         v
