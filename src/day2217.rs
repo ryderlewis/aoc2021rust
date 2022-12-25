@@ -21,6 +21,58 @@ fn part1() {
 }
 
 fn part2() {
+    let shapes = Shape::make_shapes();
+    let dirs = parse_input();
+    let mut heights_added = Vec::<usize>::new();
+
+    let mut board = Board::new(shapes, dirs);
+    for _ in 1..=5000 {
+        let pre_height = board.height();
+        board.drop_shape();
+        let post_height = board.height();
+        let delta = post_height - pre_height;
+        heights_added.push(delta);
+    }
+
+    // find a "preamble" followed by "cycle" (repeating)
+    let mut preamble: &[usize] = &[];
+    let mut cycle: &[usize] = &[];
+
+    for i in 0..heights_added.len()/2 {
+        let len = find_cycle_len(&heights_added[i..]);
+        if len.is_some() {
+            // println!("Cycle starts at {i}, len={}", len.unwrap());
+            preamble = &heights_added[..i];
+            cycle = &heights_added[i..i+len.unwrap()];
+            break;
+        }
+    }
+
+    // figure out height after 1_000_000_000_000 rocks.
+    let mut drops_remaining: usize = 1_000_000_000_000;
+    let mut height = preamble.iter().sum::<usize>();
+    drops_remaining -= preamble.len();
+
+    let num_full_cycles = drops_remaining / cycle.len();
+    drops_remaining -= num_full_cycles * cycle.len();
+    height += num_full_cycles * cycle.iter().sum::<usize>();
+
+    height += cycle[..drops_remaining].iter().sum::<usize>();
+
+    println!("{}", height);
+}
+
+fn find_cycle_len(arr: &[usize]) -> Option<usize> {
+    // find a length such that arr repeats at this length. it's gotta be at least 1000 characters long.
+    for i in 1000..arr.len()/2 {
+        let first = &arr[0..i];
+        let second = &arr[i..2*i];
+        if first == second {
+            return Some(i);
+        }
+    }
+
+    None
 }
 
 #[derive(Debug)]
@@ -79,7 +131,7 @@ impl Board {
         println!("+-------+");
     }
 
-    fn drop_shape(&mut self) {
+    fn drop_shape(&mut self) -> usize {
         self.next_shape();
         let mut shape = self.curr_shape().clone();
         let mut bottom_row = self.height() + 3;
@@ -96,7 +148,7 @@ impl Board {
                 bottom_row -= 1;
             } else {
                 self.settle(bottom_row, &shape);
-                return;
+                return bottom_row;
             }
         }
     }
