@@ -20,11 +20,15 @@ fn part2() {
         let a = a.clone();
         let b = b.clone();
 
-        print!("{a}: ");
-        println!("{:?}", monkeys.calculate(a));
+        let ans_a = monkeys.calculate(a.clone());
+        let ans_b = monkeys.calculate(b.clone());
 
-        print!("{b}: ");
-        println!("{:?}", monkeys.calculate(b));
+        println!("{}",
+                 if ans_a.is_none() {
+                     monkeys.solve(a, ans_b.unwrap())
+                 } else {
+                     monkeys.solve(b, ans_a.unwrap())
+                 });
     }
 }
 
@@ -144,6 +148,43 @@ impl Monkeys {
 
         self.answers.insert(name, val);
         val
+    }
+
+    // solve figures out the human number required such that
+    // the monkey at `name` shouts `val`
+    fn solve(&self, name: String, val: i64) -> i64 {
+        // println!("Solving for {} == {}", name, val);
+        let monkey = self.monkeys.get(&name).unwrap();
+        match &monkey.shout {
+            Shout::Human => val,
+            Shout::Num(x) => *x,
+            Shout::Op(a, op, b) => {
+                let ans_a = *self.answers.get(a).unwrap();
+                let ans_b = *self.answers.get(b).unwrap();
+
+                if ans_a.is_none() {
+                    // need to solve for a
+                    let ans_b = ans_b.unwrap();
+                    match op {
+                        Operation::Plus => self.solve(a.clone(), val - ans_b), // ? + ans_b == val
+                        Operation::Minus => self.solve(a.clone(), val + ans_b), // ? - ans_b == val
+                        Operation::Times => self.solve(a.clone(), val / ans_b), // ? * ans_b == val
+                        Operation::Divide => self.solve(a.clone(), val * ans_b), // ? / ans_b == val
+                        _ => panic!("unexpected op a: {op:?}"),
+                    }
+                } else {
+                    // need to solve for b
+                    let ans_a = ans_a.unwrap();
+                    match op {
+                        Operation::Plus => self.solve(b.clone(), val - ans_a), // ans_a + ? == val
+                        Operation::Minus => self.solve(b.clone(), ans_a - val), // ans_a - ? == val
+                        Operation::Times => self.solve(b.clone(), val / ans_a), // ans_a * ? == val
+                        Operation::Divide => self.solve(b.clone(), ans_a / val), // ans_a / ? == val
+                        _ => panic!("unexpected op b: {op:?}"),
+                    }
+                }
+            }
+        }
     }
 }
 
