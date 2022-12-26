@@ -16,6 +16,13 @@ fn part1() {
 }
 
 fn part2() {
+    let mut nodes = Nodes::parse();
+    nodes.multiply();
+    for _ in 0..10 {
+        nodes.mix();
+    }
+    let order = nodes.order();
+    println!("{}", order[1000 % order.len()] + order[2000 % order.len()] + order[3000 % order.len()]);
 }
 
 #[derive(Debug)]
@@ -61,10 +68,17 @@ impl Nodes {
         Self { nodes, zero_name }
     }
 
+    fn multiply(&mut self) {
+        let key = 811589153 as i64;
+        for node in self.nodes.values_mut() {
+            node.val *= key;
+        }
+    }
+
     fn mix(&mut self) {
         for name in 0..self.nodes.len() {
             let mut node = self.nodes.get(&name).unwrap();
-            let mut move_count = node.val;
+            let mut move_count = node.val % (self.nodes.len()-1) as i64;
 
             if move_count == 0 {
                 continue;
