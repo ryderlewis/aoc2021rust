@@ -10,12 +10,7 @@ pub fn run(part: i8) {
 
 fn part1() {
     let mut map = Map::parse();
-    println!("ROWS");
-    println!("{:#?}", map.rows);
-    println!("COLS");
-    println!("{:#?}", map.cols);
     map.walk();
-    println!("PASSWORD");
     println!("{}", map.password());
 }
 
@@ -121,7 +116,7 @@ impl Map {
                         };
 
                         // see if next coord will hit a wall
-                        let row = self.rows.get(self.pos.row).unwrap().as_ref().unwrap();
+                        let row = self.rows.get(next_coord.row).unwrap().as_ref().unwrap();
                         if row.wall_cols.contains(&next_coord.col) {
                             break;
                         }
@@ -154,9 +149,6 @@ impl Map {
 
         // parse grid
         for (j, line) in input().lines().enumerate() {
-            if j == 0 {
-                println!("FIRST ROW: {line:?}");
-            }
             let line = line.trim_end();
             if next_instructions {
                 instructions = line;
@@ -174,9 +166,6 @@ impl Map {
             };
 
             for (i, c) in line.chars().enumerate() {
-                if row == 1 {
-                    println!("ROW 1: {i}, {c}");
-                }
                 if c != '.' && c != '#' {
                     continue;
                 }
@@ -254,7 +243,7 @@ impl Map {
     }
 }
 
-fn input() -> &'static str {
+fn input_test() -> &'static str {
     &r###"
         ...#
         .#..
@@ -273,7 +262,7 @@ fn input() -> &'static str {
     "###.trim_end()[1..]
 }
 
-fn input_real() -> &'static str {
+fn input() -> &'static str {
     &r###"
                                                   ..................#..#.....#....................#............#.......#..##..........................
                                                   .#...#.....#.........................................#...##...#...#....#...................#........
