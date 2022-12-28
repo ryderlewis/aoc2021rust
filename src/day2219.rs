@@ -1,3 +1,4 @@
+use std::cmp::{max, min};
 use lazy_static::lazy_static;
 use regex::Regex;
 
@@ -10,8 +11,8 @@ pub fn run(part: i8) {
 }
 
 fn part1() {
-    let bp = Blueprint::parse_input();
-    println!("{:#?}", bp);
+    let blueprints = Blueprint::parse_input();
+    println!("{}", blueprints.iter().map(|bp| bp.quality()).sum::<i32>());
 }
 
 fn part2() {
@@ -30,6 +31,7 @@ struct Blueprint {
     ore: Cost,
     clay: Cost,
     obsidian: Cost,
+    geode: Cost,
 }
 
 impl Blueprint {
@@ -47,11 +49,16 @@ impl Blueprint {
                 obsidian: 0,
             },
             clay: Cost {
+                ore: caps["clay_ore"].parse().unwrap(),
+                clay: 0,
+                obsidian: 0,
+            },
+            obsidian: Cost {
                 ore: caps["obsidian_ore"].parse().unwrap(),
                 clay: caps["obsidian_clay"].parse().unwrap(),
                 obsidian: 0,
             },
-            obsidian: Cost {
+            geode: Cost {
                 ore: caps["geode_ore"].parse().unwrap(),
                 clay: 0,
                 obsidian: caps["geode_obsidian"].parse().unwrap(),
@@ -62,8 +69,73 @@ impl Blueprint {
     fn parse_input() -> Vec<Self> {
         input().lines().map(|line| Self::parse(line)).collect()
     }
+
+    fn quality(&self) -> i32 {
+        self.max_geodes((0, 0, 0, 0), (1, 0, 0, 0), 24)
+    }
+
+    fn max_geodes(&self, resources: (i32, i32, i32, i32), workers: (i32, i32, i32, i32), time: i32) -> i32 {
+        let (r_ore, r_clay, r_obsidian, r_geodes) = resources;
+        if time == 0 {
+            return r_geodes;
+        }
+        let (w_ore, w_clay, w_obsidian, w_geodes) = workers;
+
+        let mut best = 0;
+
+        // go through options. purchase between 0 and n ore, 0 and n clay, 0 and n obsidion, 0 and n geodes
+        let max_ore_workers = r_ore / self.ore.ore;
+        for buy_ore in 0..=max_ore_workers {
+            let max_clay_workers = (r_ore - buy_ore * self.ore.ore) / self.clay.ore;
+            for buy_clay in 0..=max_clay_workers {
+                let max_obsidian_workers = min(
+                    (r_ore - buy_ore * self.ore.ore - buy_clay * self.clay.ore) / self.obsidian.ore,
+                    r_clay / self.obsidian.clay,
+                );
+                for buy_obsidian in 0..=max_obsidian_workers {
+                    let max_geode_workers = min(
+                        (r_ore - buy_ore * self.ore.ore - buy_clay * self.clay.ore - buy_obsidian * self.obsidian.ore) / self.geode.ore,
+                        r_obsidian / self.geode.obsidian,
+                    );
+                    for buy_geode in 0..=max_geode_workers {
+                        let next_resources = (
+                                r_ore + w_ore - buy_ore * self.ore.ore - buy_clay * self.clay.ore - buy_obsidian * self.obsidian.ore - buy_geode * self.geode.ore,
+                                r_clay + w_clay - buy_obsidian * self.obsidian.clay,
+                                r_obsidian + w_obsidian - buy_geode * self.geode.obsidian,
+                                r_geodes + w_geodes,
+                            );
+                        let next_workers = (
+                                w_ore + buy_ore,
+                                w_clay + buy_clay,
+                                w_obsidian + buy_obsidian,
+                                w_geodes + buy_geode,
+                            );
+                        best = max(best, self.max_geodes(next_resources, next_workers, time - 1));
+                    }
+                }
+            }
+        }
+
+        best
+    }
 }
 
+/*
+ore: 4 ore
+clay: 2 ore
+obsid: 3 ore 14 clay
+geod: 2 ore 7 obsid
+
+
+
+
+ore: 2 ore
+clay: 3 ore
+obsid: 3 ore 8 clay
+geod: 3 ore 12 obsid
+
+calc max increase possible at each minute
+ */
 
 fn input() -> &'static str {
     r###"
